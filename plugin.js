@@ -23,7 +23,6 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  profileColor,
   requestTheme,
   STATUSBAR_AREAS,
   Switch,
@@ -2972,40 +2971,6 @@ function Panel({ variant } = {}) {
   })
 }
 
-// ── 档案标识：当前会话属于哪个档案 ────────────────────────────────────────────
-// 应用本身从不画「这条会话属于哪个档案」：SDK 里 host.state.focusedSessionProfile 早就
-// 给了，核心 UI 一处都没用（全库只有 SDK 导出那一行）。这里只在状态栏补一枚小胶囊 —
-// 档案色点 + 档案名。不碰 DOM、不建「会话→档案」映射表：侧栏本来就只列当前档案的会话，
-// 逐行加标是重复噪音。
-function useAtomValue(atom) {
-  return useSyncExternalStore(
-    atom ? onChange => atom.subscribe(onChange) : () => () => {},
-    atom ? () => atom.get() : () => null,
-    atom ? () => atom.get() : () => null
-  )
-}
-
-const FOCUSED_PROFILE_ATOM = host.state && host.state.focusedSessionProfile ? host.state.focusedSessionProfile : null
-const GATEWAY_PROFILE_ATOM = host.state && host.state.profile ? host.state.profile : null
-
-function ProfileChip() {
-  const focused = useAtomValue(FOCUSED_PROFILE_ATOM)
-  const gateway = useAtomValue(GATEWAY_PROFILE_ATOM)
-  const name = String(focused || gateway || 'default').trim() || 'default'
-  const color = profileColor(name)
-  return jsxs('span', {
-    title: `当前会话所属档案：${name}`,
-    className: 'inline-flex h-full items-center gap-1.5 px-1.5 text-[0.6875rem] text-(--ui-text-secondary)',
-    children: [
-      jsx('span', {
-        className: 'inline-block size-1.5 shrink-0 rounded-full',
-        style: color ? { background: color } : { boxShadow: 'inset 0 0 0 1px rgba(127,127,127,.55)' },
-      }),
-      jsx('span', { className: 'max-w-24 truncate', children: name }),
-    ],
-  })
-}
-
 function Trigger() {
   return jsxs(Popover, {
     children: [
@@ -3078,8 +3043,6 @@ export default {
       // 状态栏「外观」入口：**永远注册**。它是重新打开总开关的唯一入口之一，
       // 关掉总开关时不能跟着消失（否则就只能去改配置文件了）。
       { id: 'chip', area: STATUSBAR_AREAS.right, order: 87, render: () => jsx(Trigger, {}) },
-      // 档案标识：永远注册，和外观开关无关 —— 它是「我在哪个档案」的路标。
-      { id: 'profile-chip', area: STATUSBAR_AREAS.right, order: 86, render: () => jsx(ProfileChip, {}) },
       // 同一套开关/档位也出现在「设置 › 外观」页底部（app 的 appearance.extra 插槽）
       { id: 'settings', area: 'appearance.extra', render: () => jsx(Panel, { variant: 'wide' }) },
       {
