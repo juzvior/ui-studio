@@ -99,13 +99,19 @@ mkdir -p ~/.hermes/desktop-plugins/ui-studio && curl -fsSL \
 | 名称 | 任意文本，最多 24 字 | `Hermes` |
 | 头像大小 | 36 / 42 / 48 px | 36 |
 
-三套头像是 4 列 × 3 行的雪碧图，三个状态：**待机**（5.2s 一轮，中途眨一次眼约 338ms）、**工作中**（0.8s 一轮，跟的是真实的 `message.status === 'running'`，长时间思考、跑工具时一直在动）、**点击**（0.9s 播一次，停在末帧不回弹）。头像大小靠 CSS 缩放雪碧图，不改像素。
+三套头像是 4 列 × 3 行的雪碧图，三个状态各自独立成动画（下面按 1:1 原始分辨率 96px 显示，放大看就是虚的，不要拉大）：
 
-| DeepSeek | ChatGPT | Claude |
-|:---:|:---:|:---:|
-| ![DeepSeek](assets/avatar-deepseek.gif) | ![ChatGPT](assets/avatar-gpt.gif) | ![Claude](assets/avatar-claude.gif) |
+| | 待机 5.2s 一轮 | 工作中 0.8s 一轮 | 点击 0.9s 播一次 |
+|:---|:---:|:---:|:---:|
+| DeepSeek | <img src="assets/avatar-deepseek-idle.gif" width="96"> | <img src="assets/avatar-deepseek-work.gif" width="96"> | <img src="assets/avatar-deepseek-click.gif" width="96"> |
+| ChatGPT | <img src="assets/avatar-gpt-idle.gif" width="96"> | <img src="assets/avatar-gpt-work.gif" width="96"> | <img src="assets/avatar-gpt-click.gif" width="96"> |
+| Claude | <img src="assets/avatar-claude-idle.gif" width="96"> | <img src="assets/avatar-claude-work.gif" width="96"> | <img src="assets/avatar-claude-click.gif" width="96"> |
 
-> 上面是待机动画的实帧（192px，2 倍图）。头像素材由 AI 生成，随插件一起提供。
+- **待机**：5.2 秒一轮，中途眨一次眼（四帧，约 338ms）
+- **工作中**：0.8 秒一轮循环；跟的是真实的 `message.status === 'running'`，长时间思考、跑工具时一直在动
+- **点击**：0.9 秒播一次，停在末帧不回弹
+
+头像大小（36 / 42 / 48px）靠 CSS 缩放雪碧图，不改像素。头像素材由 AI 生成，随插件一起提供。
 
 ### 我的消息
 
@@ -156,14 +162,12 @@ mkdir -p ~/.hermes/desktop-plugins/ui-studio && curl -fsSL \
 
 ```
 ui-studio/
-├── plugin.js                # 插件本体（面板 + 样式注入 + 主题注册）
+├── plugin.js                     # 插件本体（面板 + 样式注入 + 主题注册）
 ├── assets/
-│   ├── avatar-deepseek.gif  # 三套头像的待机动画
-│   ├── avatar-gpt.gif
-│   ├── avatar-claude.gif
-│   └── screens/             # 界面截图（WebP）
+│   ├── avatar-<name>-<state>.gif # 三套头像 × 三态（idle / work / click）
+│   └── screens/                  # 界面截图（WebP，2560 宽）
 ├── README.md
-└── LICENSE                  # MIT
+└── LICENSE                       # MIT
 ```
 
 ## 许可
