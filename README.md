@@ -6,24 +6,29 @@ Hermes 桌面应用的外观插件：配色、字号/疏密/圆角/气泡宽度/
 
 ## 安装
 
-**方式一（复制文件，最快）**
-
-1. 在本机建目录：`~/.hermes/desktop-plugins/ui-studio/`
-2. 把 `plugin.js` 放进去
-3. 应用内按 `⌘K` → **Reload desktop plugins**（或重启应用）
-
-**方式二（从 Git 仓库装，能升级）**
+**一行命令（推荐）**
 
 ```bash
-hermes plugins install https://github.com/<你的用户名>/ui-studio
+mkdir -p ~/.hermes/desktop-plugins/ui-studio && curl -fsSL \
+  https://raw.githubusercontent.com/juzvior/ui-studio/main/plugin.js \
+  -o ~/.hermes/desktop-plugins/ui-studio/plugin.js
 ```
 
-仓库根目录放 `plugin.js` 即可——这是「只有桌面端」的插件，不需要 `plugin.yaml`。
-仓库名必须是 `ui-studio`，因为插件的 id 是 `ui-studio`，安装时文件夹名要与它一致。
+然后应用内按 `⌘K` → **Reload desktop plugins**（或重启应用）。
 
-**方式三（应用内）**
+**手动方式**
 
-Capabilities → Plugins → 用 Git 地址安装，安装后在列表里打开开关。
+1. 建目录 `~/.hermes/desktop-plugins/ui-studio/`
+2. 把 `plugin.js` 放进去
+3. `⌘K` → **Reload desktop plugins**
+
+**应用内安装**
+
+Capabilities → Plugins → 用 Git 地址 `https://github.com/juzvior/ui-studio` 安装（会先探测仓库、锁定 commit，再复制到 `~/.hermes/desktop-plugins/`）。
+
+> 注意：`hermes plugins install <url>` 只处理「智能体插件」（需要 `plugin.yaml`），装不了只有桌面半身的插件，别用那条。
+
+升级就是把新的 `plugin.js` 覆盖进去再 Reload；插件本身不含任何自更新代码。
 
 ## 使用
 
