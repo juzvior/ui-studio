@@ -127,6 +127,20 @@ Capabilities → Plugins → 用 Git 地址 `https://github.com/juzvior/ui-studi
 - 外观: 疏密「标准」/「紧凑」/「宽松」
 - 外观: 恢复全部默认
 
+## 截图
+
+整窗 + 外观面板（天空配色，开着窗口透明）：
+
+![外观面板](assets/screens/01-panel-sky.webp)
+
+同一段对话换配色，只换配色，别的不动：
+
+| 薄荷 | 丁香 |
+|:---:|:---:|
+| ![薄荷](assets/screens/02-chat-mint.webp) | ![丁香](assets/screens/03-chat-lavender.webp) |
+
+> 截图里的会话是示例数据，不是真实聊天记录。
+
 ## 兼容性
 
 样式是按 Hermes 桌面应用当前的 `data-slot` 结构与设计变量写的。应用大版本升级若改动这些结构，个别板块可能失效；总开关关掉即可完全还原，不会残留。
@@ -139,7 +153,8 @@ ui-studio/
 ├── assets/
 │   ├── avatar-deepseek.gif  # 三套头像的待机动画（README 用）
 │   ├── avatar-gpt.gif
-│   └── avatar-claude.gif
+│   ├── avatar-claude.gif
+│   └── screens/             # README 界面截图（WebP）
 ├── README.md
 └── LICENSE                # MIT
 ```
