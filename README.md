@@ -42,7 +42,9 @@ Capabilities → Plugins → 用 Git 地址 `https://github.com/juzvior/ui-studi
 
 ```
 ui-studio/
-└── plugin.js
+├── plugin.js    # 插件本体（Appearance 面板 + 样式注入 + 主题注册）
+├── README.md
+└── LICENSE      # MIT
 ```
 
 ## 许可
