@@ -766,7 +766,9 @@ ${PALETTES.map((palette, index) => (index === 0 ? ":root" : ":root[data-ui-palet
   border-radius: 6px !important;
   color: var(--ui-text-primary) !important;
 }
-:root [data-slot='sidebar'] [data-active='true'] :is(span, small, time, p) {
+/* 选中行里所有 span/small/time 压到 52% 墨 —— 但放过带内联底色的 chip：
+   那是平台品牌标（AvatarChip），压成墨色微信绿就没了。 */
+:root [data-slot='sidebar'] [data-active='true'] :is(span, small, time, p):not([style*='background-color']) {
   color: color-mix(in srgb, var(--ui-text-primary) 52%, transparent) !important;
 }
 :root [data-slot='sidebar'] [data-active='true'] :is(.font-semibold, [class*='font-semibold'], strong) {
@@ -2379,6 +2381,25 @@ const ALWAYS_CSS = `
   border-color: var(--acc-code, #3E9BE0) !important;
   box-shadow: none !important;
 }
+
+/* —— 品牌图标不吃主题色 ——
+   AvatarChip（平台图标 / 连接器标）的签名是「内联底色 + 内联品牌色」：微信绿 #07C160、
+   Telegram 蓝、WhatsApp 绿都画在 svg 的 fill=currentColor 上。左列那几条着色规则会把
+   它们一起收走，用户看到的是「微信图标变成一坨薄荷色、还发了胖」：
+     · 分区标题把标题里的 svg 染成主色并补了 stroke（小图标上 1.7 的线宽等于糊成一团）；
+     · 选中行把 span 的 color 压成 52% 墨色，品牌色直接没了。
+   这里按「带内联底色的 span 里的 svg」认品牌标：颜色还给它自己的 color，描边清零。
+   只加这条豁免，不改上面那两条规则的作用面（导航图标该着主色还着）。 */
+[data-sidebar='group'] [class*='section-label'] span[style*='background-color'] svg,
+[data-slot='sidebar'] span[style*='background-color'] svg,
+[data-slot='sidebar'] span[style*='background-color'] svg *,
+[data-slot='profile-rail'] span[style*='background-color'] svg {
+  color: inherit !important;
+  fill: currentColor !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
 
 
 
