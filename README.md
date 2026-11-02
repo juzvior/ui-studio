@@ -5,6 +5,8 @@
 
 Hermes 桌面应用的外观插件：配色、字号/疏密/圆角、气泡宽度、头像与动画、窗口透明、宠物层级，全部收在「设置 › 外观」一个面板里。
 
+**当前版本**：`v1.0.0`（面板顶部左边也会显示）· 历史见 [CHANGELOG.md](CHANGELOG.md)
+
 **目录**：[截图](#截图) · [安装](#安装) · [使用](#使用) · [设置项](#设置项) · [覆盖范围](#覆盖范围) · [命令面板](#命令面板) · [兼容性](#兼容性)
 
 ## 截图
@@ -33,7 +35,7 @@ mkdir -p ~/.hermes/desktop-plugins/ui-studio && curl -fsSL \
 
 > `hermes plugins install <url>` 只处理智能体插件（需要 `plugin.yaml`），装不了这个插件。
 
-**升级**：把新的 `plugin.js` 覆盖进去再 Reload。插件不含自更新代码。
+**升级**：把新的 `plugin.js` 覆盖进去再 Reload。插件不含自更新代码；发了哪些版本看 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 使用
 

@@ -37,6 +37,12 @@ const THEME_NAME = 'apple'
 const FALLBACK_THEME = 'nous'
 const APPLE_BLUE = '#007AFF'
 
+// 版本：面板底部显示、启动时打一行日志。发版时和 CHANGELOG 一起改。
+const PLUGIN_VERSION = '1.0.0'
+
+// 面板高度上限（px）：设置页与浮窗共用一个值，超出部分栏内滚动。
+const PANEL_MAX_HEIGHT = '470px'
+
 // ── 1. 配色主题（浅/深两套系统色） ────────────────────────────────────────────
 // 系统色：浅色 #007AFF / 深色 #0A84FF；内容白 / #1C1C1E；
 // 侧栏 #EDEDF0 / #232325；分隔线 #D6D6DB / #3A3A3C。
@@ -767,7 +773,7 @@ ${PALETTES.map((palette, index) => (index === 0 ? ":root" : ":root[data-ui-palet
   color: var(--ui-text-primary) !important;
 }
 /* 选中行里所有 span/small/time 压到 52% 墨 —— 但放过带内联底色的 chip：
-   那是平台品牌标（AvatarChip），压成墨色微信绿就没了。 */
+   那是品牌标（AvatarChip），压成墨色品牌色就没了。 */
 :root [data-slot='sidebar'] [data-active='true'] :is(span, small, time, p):not([style*='background-color']) {
   color: color-mix(in srgb, var(--ui-text-primary) 52%, transparent) !important;
 }
@@ -1387,8 +1393,8 @@ html:has([data-message-streaming="true"]) [data-ui-avatar='1'] .ui-avatar-sprite
 [data-slot='profile-rail'] [class*='opacity-35'] {
   opacity: 0.9;
 }
-/* 具名档案（按钮自带 inline 底色）：app 用档案名 hash 出颜色，lobo 落到
-   hsl(128 68% 58%) —— 偏黄的「菜绿」，22% 洗淡后就是一块灰绿（实测 209,234,212）。
+/* 具名档案（按钮自带 inline 底色）：app 按档案名 hash 出一个色相，可能落到偏黄的绿
+   （hsl(128 68% 58%) 那种），22% 洗淡后就是一块灰绿（实测 209,234,212）。
    这里把色相往薄荷方向推 22° 并轻微降饱和（实测 → 199~212,234~235,217~223），
    未选中 18% / 选中 46%。 */
 [data-slot='profile-rail'] button[style*='background-color'] {
@@ -1644,11 +1650,11 @@ button[data-slot='aui_msg-reactions']:hover {
 // 原 SVG 是 6 层白色波纹叠在一个底色上，这里把 use/defs 展开成 5 条独立路径，
 // 底色走 currentColor（= 当前主色），波纹保持白，每层单独给 CSS 动画做视差。
 // 头像：AI 生成的三套原创动漫形象（自有素材，无第三方授权约束）。
-//   源图/成品归档：~/Documents/AiOutput/hermes-ui/avatar-<id>-src.png / -256.png
+//   源图与成品同目录归档：avatar-<id>-src.png / avatar-<id>-256.png
 //   内联的是 256px 透明底 WebP（质量 92）：rembg 抠图 + 去底板，人物四周留 16% 透明边。
 //   容器不再裁圆（overflow:visible），所以头顶装饰/鳍都不会被切；阴影走 drop-shadow 贴人物轮廓。
 // 头像动画雪碧图：4 列 × 3 行，96px 格，行为「待机 / 工作中 / 点击」。
-// 生成产物与重跑脚本在 ~/Documents/AiOutput/hermes-ui/anim-deepseek/（sprite-<id>.webp + build_all.py）。
+// 生成产物与重跑脚本在同一产物目录（sprite-<id>.webp + build_all.py）。
 // 时序全在 CSS：待机 5.2s 一轮（眨眼约 338ms）、工作中 0.8s 一轮、点击 0.9s 播一次。
 const AVATAR_SPRITES = {
   deepseek:
@@ -2385,9 +2391,9 @@ const ALWAYS_CSS = `
 }
 
 /* —— 品牌图标不吃主题色 ——
-   AvatarChip（平台图标 / 连接器标）的签名是「内联底色 + 内联品牌色」：微信绿 #07C160、
-   Telegram 蓝、WhatsApp 绿都画在 svg 的 fill=currentColor 上。左列那几条着色规则会把
-   它们一起收走，用户看到的是「微信图标变成一坨薄荷色、还发了胖」：
+   AvatarChip（平台图标 / 连接器卡片标）的签名是「内联底色 + 内联品牌色」：每个平台
+   自己的品牌色都画在 svg 的 fill=currentColor 上。左列那几条着色规则会把它们一起收走，
+   表现为「品牌标被染成一坨主题色、还发了胖」：
      · 分区标题把标题里的 svg 染成主色并补了 stroke（小图标上 1.7 的线宽等于糊成一团）；
      · 选中行把 span 的 color 压成 52% 墨色，品牌色直接没了。
    这里按「带内联底色的 span 里的 svg」认品牌标：颜色还给它自己的 color，描边清零。
@@ -2402,24 +2408,83 @@ const ALWAYS_CSS = `
   stroke-width: 0 !important;
 }
 
-/* —— 思维链整块折叠 ——
-   一条回复里的「已思考 / 工具行 / 工具运行汇总」都是对话脚手架
-   （data-conversation-scaffold），逐个开合时能占掉半屏。这里把它们当成一块：
-   只要这一串里没有任何一块处于展开态，就只留第一行；点这一行展开它 → 整串
-   重新出现，各块仍按核心原来的方式单独开合；把它收起 → 又收回一行。
-   纯样式实现，不接管 DOM、不挂观察器，也不改核心自己的折叠状态 ——
-   「外观 › 折叠推理（默认折叠）」开关照常生效。
-   判定「展开」只认思维链块内部的 aria-expanded（正文里带的展开控件不算，否则
-   一段正文就能把整条链按住不折）；
-   用相邻兄弟选择器（+，不是 ~）：中间夹着正文段落的思维块不算同一串，不会被收走。
-   审批卡片（tool-approval-*）与连接器卡片不在这两个 slot 里，永远可见。 */
+/* —— 思维链：外层一张卡 + 名称「思维链」+ 折叠 ——
+   结构（插件自己的节点，只加不改）：
+     [data-ui-chain-head]   ← 卡头：「思维链」+ 右端箭头，插在这条回复的第一条链块前面
+     原来的思维链块          ← 一个字节都不动，照旧各自「已思考 N 秒」、各自可展开
+   收起 = 卡头之外的链块全部 display:none；展开 = 原样。状态记在卡头身上
+   （[data-ui-chain-open]），完全不碰核心的折叠状态、也不改它的文案。
+   卡面靠「卡头 + 各块同一层底、首尾圆角、中间压平」缝成一整块。 */
+:root[data-ui-chain-fold] [data-ui-chain-head] {
+  margin: 0 !important;
+  padding: 7px 12px !important;
+  background-color: color-mix(in srgb, var(--ui-text-primary) 5.5%, transparent) !important;
+  border-radius: 11px 11px 0 0 !important;
+  transition: background-color 140ms ease;
+}
+:root[data-ui-chain-fold] [data-ui-chain-head] > button {
+  display: flex !important;
+  width: 100% !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--ui-text-primary) 60%, transparent) !important;
+}
+:root[data-ui-chain-fold] [data-ui-chain-head] > button:hover {
+  color: color-mix(in srgb, var(--ui-text-primary) 84%, transparent) !important;
+}
+:root[data-ui-chain-fold] [data-ui-chain-head] .ui-chain-caret {
+  display: inline-flex;
+  flex: none;
+  opacity: 0.6;
+  transition: transform 160ms ease;
+}
+:root[data-ui-chain-fold] [data-ui-chain-head][data-ui-chain-open] .ui-chain-caret {
+  transform: rotate(180deg);
+  opacity: 0.85;
+}
+
+/* 卡身：卡头之后那些链块 */
 :root[data-ui-chain-fold]
-  [data-slot='aui_assistant-message-content']:not(
-    :has(> :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) [aria-expanded='true'])
-  )
-  > :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block'])
-  + :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) {
+  [data-slot='aui_assistant-message-content']
+  > [data-ui-chain-head]
+  ~ :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) {
+  margin-block: 0 !important;
+  padding: 6px 12px !important;
+  background-color: color-mix(in srgb, var(--ui-text-primary) 7%, transparent) !important;
+  border-radius: 0 !important;
+  transition: background-color 140ms ease;
+}
+/* 最后一块收底圆角 */
+:root[data-ui-chain-fold]
+  [data-slot='aui_assistant-message-content']
+  > [data-ui-chain-head]
+  ~ :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']):not(
+    :has(~ :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']))
+  ) {
+  border-radius: 0 0 11px 11px !important;
+  padding-bottom: 9px !important;
+}
+/* 收起：卡头之外全部隐藏；卡头自己四角都圆 */
+:root[data-ui-chain-fold]
+  [data-slot='aui_assistant-message-content']
+  > [data-ui-chain-head]:not([data-ui-chain-open])
+  ~ :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) {
   display: none !important;
+}
+:root[data-ui-chain-fold]
+  [data-slot='aui_assistant-message-content']
+  > [data-ui-chain-head]:not([data-ui-chain-open]) {
+  border-radius: 11px !important;
 }
 
 
@@ -2530,6 +2595,8 @@ function releaseEverything() {
     delete root.dataset.uiSidebarTint
     delete root.dataset.uiAvatarOff
     delete root.dataset.uiPetLayer
+    delete root.dataset.uiChainFold
+    stopChainHeads()
     root.style.removeProperty('--ui-avatar-size')
     root.style.removeProperty('--radius-scalar')
     clearAvatar()
@@ -2551,25 +2618,96 @@ function releaseEverything() {
   }
 }
 
-// —— 临时诊断（思维链折叠未命中的排查用，确认后删掉）——
-let chainDiagTicks = 0
-function chainDiag() {
-  try {
-    const contents = Array.from(document.querySelectorAll("[data-slot='aui_assistant-message-content']")).slice(-3)
-    const shape = contents.map((c, i) => {
-      const kids = Array.from(c.children).slice(0, 10).map(el => {
-        const slot = el.getAttribute('data-slot') || el.tagName.toLowerCase()
-        const grp = el.hasAttribute('data-tool-group') ? '/grp' : el.hasAttribute('data-tool-row') ? '/row' : ''
-        const inner = el.querySelector('button[aria-expanded]')
-        return slot + grp + (inner ? '{row:' + inner.getAttribute('aria-expanded') + '}' : '')
-      })
-      const gate = !c.matches(":has([data-conversation-scaffold] button[aria-expanded='true'])")
-      return '#' + i + ' n=' + c.children.length + ' gateOpen=' + gate + ' [' + kids.join(' | ') + ']'
-    })
-    console.log('[ui-studio chain-diag] root=' + (document.documentElement.dataset.uiChainFold || 'none') + ' ' + (shape.join('  ||  ') || 'no assistant content'))
-  } catch (error) {
-    console.log('[ui-studio chain-diag] failed: ' + (error && error.message))
+// ── 思维链卡头（插件自己的节点：只加，不改核心的块）─────────────────────
+// 消息内容那层是 React 拥有的容器。搬动/包裹它的子节点会在它重排时炸掉整棵子树
+// （踩过：removeChild 抛错、整个设置面板消失）。所以这里只做一件事：在「这条回复的
+// 第一条思维链块」前面 insertBefore 一个自己的卡头，核心的块一个字节都不动。
+const CHAIN_HEAD_ATTR = 'data-ui-chain-head'
+const CHAIN_BLOCK_SELECTOR = "[data-slot='aui_thinking-disclosure'],[data-slot='tool-block']"
+let chainHeadObserver = null
+let chainHeadQueued = false
+
+function createChainHead() {
+  const head = document.createElement('div')
+  head.setAttribute(CHAIN_HEAD_ATTR, '')
+  const button = document.createElement('button')
+  button.type = 'button'
+  const label = document.createElement('span')
+  label.textContent = '思维链'
+  const caret = document.createElement('span')
+  caret.className = 'ui-chain-caret'
+  caret.innerHTML =
+    '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
+    '<path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  button.append(label, caret)
+  button.addEventListener('click', event => {
+    event.preventDefault()
+    event.stopPropagation()
+    head.toggleAttribute('data-ui-chain-open')
+  })
+  head.append(button)
+  return head
+}
+
+function chainBlocksOf(content) {
+  return Array.from(content.children).filter(el => el.matches && el.matches(CHAIN_BLOCK_SELECTOR))
+}
+
+function syncChainHeads() {
+  for (const content of document.querySelectorAll("[data-slot='aui_assistant-message-content']")) {
+    try {
+      const blocks = chainBlocksOf(content)
+      const head = content.querySelector(':scope > [' + CHAIN_HEAD_ATTR + ']')
+      if (blocks.length === 0) {
+        if (head) head.remove()
+        continue
+      }
+      if (head && head.nextElementSibling === blocks[0]) continue
+      content.insertBefore(head || createChainHead(), blocks[0])
+    } catch (error) {
+      // 容器结构变了（消息卸载 / React 重排）就跳过这一条，绝不抛出去
+    }
   }
+}
+
+function queueChainSync() {
+  if (chainHeadQueued) return
+  chainHeadQueued = true
+  requestAnimationFrame(() => {
+    chainHeadQueued = false
+    syncChainHeads()
+  })
+}
+
+function startChainHeads() {
+  syncChainHeads()
+  if (chainHeadObserver) return
+  // 只认「链块 / 消息内容」这类节点的增删，流式输出时的高频文本变动不走这里；
+  // 而且没有对应变化时 syncChainHeads 一次 DOM 都不写 —— 不会自激。
+  chainHeadObserver = new MutationObserver(records => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node.nodeType !== 1) continue
+        if (node.matches && (node.matches(CHAIN_BLOCK_SELECTOR) || node.matches("[data-slot='aui_assistant-message-content']"))) {
+          queueChainSync()
+          return
+        }
+        if (node.querySelector && node.querySelector(CHAIN_BLOCK_SELECTOR)) {
+          queueChainSync()
+          return
+        }
+      }
+    }
+  })
+  chainHeadObserver.observe(document.body, { childList: true, subtree: true })
+}
+
+function stopChainHeads() {
+  if (chainHeadObserver) {
+    chainHeadObserver.disconnect()
+    chainHeadObserver = null
+  }
+  for (const head of document.querySelectorAll('[' + CHAIN_HEAD_ATTR + ']')) head.remove()
 }
 
 function paint() {
@@ -2584,13 +2722,13 @@ function paint() {
   // 优化宠物层级：宠物降到普通板块层，浮层抬到它之上
   if (state.petLayer !== false) root.dataset.uiPetLayer = '1'
   else delete root.dataset.uiPetLayer
-  // 思维链整块折叠：关掉就整段退回“逐块折叠”
-  if (state.chainFold !== false) root.dataset.uiChainFold = '1'
-  else delete root.dataset.uiChainFold
-  // 临时诊断：连打 5 次，覆盖重载后再打开会话的时机
-  if (chainDiagTicks < 5) {
-    chainDiagTicks += 1
-    setTimeout(chainDiag, 2000 * chainDiagTicks)
+  // 思维链整块折叠：关掉就整段退回核心默认（逐块折叠），卡头节点一并摘掉
+  if (state.chainFold !== false) {
+    root.dataset.uiChainFold = '1'
+    startChainHeads()
+  } else {
+    delete root.dataset.uiChainFold
+    stopChainHeads()
   }
 
   // 头像：只有跟头像有关的项变了才去翻整页消息（以前每动一个开关都扫一遍）
@@ -2693,7 +2831,7 @@ function disable() {
 // 面板分区：标题 + 内容，外框统一（以前这套 div 在面板里重复了 7 遍）
 function Section({ title, children }) {
   return jsxs('div', {
-    className: 'flex flex-col gap-2 pt-1',
+    className: 'flex flex-col gap-1.5 pt-0.5',
     children: [jsx(Heading, { children: title }), ...(Array.isArray(children) ? children : [children])],
   })
 }
@@ -2754,7 +2892,7 @@ function patchGlass(patch) {
 function SwitchRow({ label, note, checked, onChange, strong }) {
   // 关掉时整行文字压暗 + 标一个「关」，一眼能看出这块样式现在是不生效的。
   return jsxs('label', {
-    className: 'flex cursor-pointer items-start justify-between gap-3 py-0.5',
+    className: 'flex cursor-pointer items-start justify-between gap-3 py-0',
     children: [
       jsxs('span', {
         className: 'flex min-w-0 flex-col',
@@ -2774,6 +2912,9 @@ function SwitchRow({ label, note, checked, onChange, strong }) {
                 className: checked
                   ? 'text-[0.625rem] leading-snug text-(--dt-muted-foreground)'
                   : 'text-[0.625rem] leading-snug text-(--dt-muted-foreground) opacity-60',
+                // 说明只占一行：超长用省略号，全文放 title
+                style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+                title: note,
                 children: note,
               })
             : null,
@@ -2816,7 +2957,7 @@ function Choice({ active, label, title, onClick }) {
 // 挤在选项里认不出来；现在 12px/600 + 两条线，组与组的分界靠它，不再另画 border。
 function Heading({ children }) {
   return jsxs('div', {
-    className: 'flex items-center gap-2 pt-1',
+    className: 'flex items-center gap-2 pt-0.5',
     children: [
       jsx('span', { className: 'h-px flex-1', style: { background: 'var(--dt-border)' } }),
       jsx('span', {
@@ -2838,13 +2979,17 @@ function Panel({ variant } = {}) {
   const live = useSyncExternalStore(subscribe, read, read)
   // variant='wide' 是给「设置 › 外观」页用的：那里是一整栏，不要固定 288px 宽、不要自带滚动。
   const wide = variant === 'wide'
-  const typeKnobs = KNOBS.filter(knob => knob.key !== 'bubbleMax')
-  const mineKnobs = KNOBS.filter(knob => knob.key === 'bubbleMax')
+  // 四个档位同属排版：疏密 / 字号 / 圆角 / 气泡最大宽度
+  const knobs = KNOBS
 
   return jsxs('div', {
     className: wide
-      ? 'flex w-full flex-col gap-3'
-      : 'flex max-h-[70vh] w-72 flex-col gap-3 overflow-y-auto pr-1',
+      ? 'flex w-full flex-col gap-2 overflow-y-auto pr-1'
+      : 'flex w-72 flex-col gap-2 overflow-y-auto pr-1',
+    // 高度用内联样式 + 固定像素：Tailwind 的任意值类在应用编译时才算得出来，
+    // 插件里新写的 max-h-[46vh] 不会进 CSS（查过产物，只有 max-h-[60vh]/[70vh] 在）。
+    // 固定 px 而不是 vh：窗口一高，vh 换算出来的值也跟着变高，压不住。
+    style: { maxHeight: PANEL_MAX_HEIGHT },
     children: [
       // 1. 总开关 + 恢复默认：两者都是「整套」级别的操作，放在同一个板块里
       jsxs('div', {
@@ -2857,7 +3002,7 @@ function Panel({ variant } = {}) {
             // 实际落到 -apple-system = SF。所以正文本来就是这个字体，写「换成 SF」
             // 是假承诺；真正变的是等宽（默认首选 app 自带的 JetBrains Mono，本皮肤
             // 改成 SF Mono）、行高 1.45（默认 1.5）、字距 -0.006em（默认 0）。
-            note: '系统配色与字体',
+            note: '系统配色、字体与排版基调',
             strong: true,
             checked: live.enabled,
             onChange: () => (live.enabled ? disable() : enable()),
@@ -2865,9 +3010,10 @@ function Panel({ variant } = {}) {
           jsxs('div', {
             className: 'flex items-center justify-between gap-3 pt-0.5',
             children: [
-              jsx('p', {
-                className: 'text-[0.625rem] leading-snug text-(--dt-muted-foreground)',
-                children: '蓝点 = 改过的值',
+              jsx('span', {
+                className: 'leading-none text-(--dt-muted-foreground) opacity-60',
+                style: { fontSize: '10px' },
+                children: 'v' + PLUGIN_VERSION,
               }),
               jsx('button', {
                 type: 'button',
@@ -2911,7 +3057,7 @@ function Panel({ variant } = {}) {
                 children: [
                   jsx(SwitchRow, {
                     label: '透明背景',
-                    note: '系统原生磨砂 · 桌面透出',
+                    note: '系统原生磨砂，透出桌面',
                     checked: live.glass.enabled,
                     onChange: () => toggleGlass(!live.glass.enabled),
                   }),
@@ -2946,7 +3092,7 @@ function Panel({ variant } = {}) {
       // 4. 排版：三组档位
       jsxs(Section, {
         title: '排版',
-        children: [          ...typeKnobs.map(knob => jsx(StepKnob, { knob }, knob.key)),
+        children: [          ...knobs.map(knob => jsx(StepKnob, { knob }, knob.key)),
         ],
       }),
 
@@ -2955,7 +3101,7 @@ function Panel({ variant } = {}) {
         title: 'AI 署名',
         children: [          jsx(SwitchRow, {
             label: '显示头像与名称',
-            note: '关掉只留正文',
+            note: '关掉只留正文与工具行',
             checked: live.showAvatar !== false,
             onChange: () => commit({ showAvatar: live.showAvatar === false }),
           }),
@@ -3020,36 +3166,24 @@ function Panel({ variant } = {}) {
         ],
       }),
 
-      // 5. 我的消息：最大宽度
+      // 6. 其他：单项开关归到一处
       jsxs(Section, {
-        title: '我的消息',
-        children: [          ...mineKnobs.map(knob => jsx(StepKnob, { knob }, knob.key)),
-        ],
-      }),
-
-      // 5.5 宠物：只控制层级
-      jsxs(Section, {
-        title: '宠物',
+        title: '其他',
         children: [          jsx(SwitchRow, {
             label: '优化宠物层级',
-            note: '宠物降到和普通会话同一层，设置、弹窗、菜单都能盖住它',
+            note: '降到普通会话层，弹窗能盖住它',
             checked: live.petLayer !== false,
             onChange: value => commit({ petLayer: value }),
           }),
-        ],
-      }),
-
-      // 5.6 思维链：整块折叠
-      jsxs(Section, {
-        title: '思维链',
-        children: [          jsx(SwitchRow, {
-            label: '整块折叠',
-            note: '一条回复里的思维链、工具行合成一块：全收起时只留第一行，点它展开整串',
+          jsx(SwitchRow, {
+            label: '思维链整块折叠',
+            note: '合成一块，点卡头一次展开',
             checked: live.chainFold !== false,
             onChange: value => commit({ chainFold: value }),
           }),
         ],
       }),
+
 
     ],
   })
@@ -3101,6 +3235,7 @@ export default {
       }
     }
     snapshot = clone(state)
+    try { console.info(`[ui-studio] v${PLUGIN_VERSION}`) } catch (err) {}
 
     // 关着的时候连样式表都不建：启动瞬间不该闪一下我们的皮肤
     if (state.enabled) ensureStyleElement()
