@@ -2090,6 +2090,7 @@ function sanitize(stored) {
     // AI 回复上方的头像 + 名称
     showAvatar: typeof raw.showAvatar === 'boolean' ? raw.showAvatar : true,
     petLayer: raw.petLayer !== false,
+    chainFold: raw.chainFold !== false,
     themePinned: typeof raw.themePinned === 'boolean' ? raw.themePinned : true,
     previousTheme: typeof raw.previousTheme === 'string' ? raw.previousTheme : FALLBACK_THEME,
     tuned: { touched, values },
@@ -2179,6 +2180,7 @@ function resetAll() {
     avatarName: DEFAULT_AVATAR_NAME,
     avatarSize: 36,
     petLayer: true,
+    chainFold: true,
   })
   if (state.enabled && !state.themePinned) {
     applyTheme()
@@ -2405,11 +2407,16 @@ const ALWAYS_CSS = `
    （data-conversation-scaffold），逐个开合时能占掉半屏。这里把它们当成一块：
    只要这一串里没有任何一块处于展开态，就只留第一行；点这一行展开它 → 整串
    重新出现，各块仍按核心原来的方式单独开合；把它收起 → 又收回一行。
-   纯样式实现（:has 看展开态 + 相邻兄弟），不接管 DOM、不挂观察器，也不改核心
-   自己的折叠状态 —— 「外观 › 折叠推理（默认折叠）」开关照常生效。
-   只认直系子节点：中间夹着正文段落的思维块不算同一串，不会被收走；
+   纯样式实现，不接管 DOM、不挂观察器，也不改核心自己的折叠状态 ——
+   「外观 › 折叠推理（默认折叠）」开关照常生效。
+   判定「展开」只认思维链块内部的 aria-expanded（正文里带的展开控件不算，否则
+   一段正文就能把整条链按住不折）；
+   用相邻兄弟选择器（+，不是 ~）：中间夹着正文段落的思维块不算同一串，不会被收走。
    审批卡片（tool-approval-*）与连接器卡片不在这两个 slot 里，永远可见。 */
-[data-slot='aui_assistant-message-content']:not(:has([aria-expanded='true']))
+:root[data-ui-chain-fold]
+  [data-slot='aui_assistant-message-content']:not(
+    :has(> :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) [aria-expanded='true'])
+  )
   > :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block'])
   + :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) {
   display: none !important;
@@ -2544,6 +2551,27 @@ function releaseEverything() {
   }
 }
 
+// —— 临时诊断（思维链折叠未命中的排查用，确认后删掉）——
+let chainDiagTicks = 0
+function chainDiag() {
+  try {
+    const contents = Array.from(document.querySelectorAll("[data-slot='aui_assistant-message-content']")).slice(-3)
+    const shape = contents.map((c, i) => {
+      const kids = Array.from(c.children).slice(0, 10).map(el => {
+        const slot = el.getAttribute('data-slot') || el.tagName.toLowerCase()
+        const grp = el.hasAttribute('data-tool-group') ? '/grp' : el.hasAttribute('data-tool-row') ? '/row' : ''
+        const inner = el.querySelector('button[aria-expanded]')
+        return slot + grp + (inner ? '{row:' + inner.getAttribute('aria-expanded') + '}' : '')
+      })
+      const gate = !c.matches(":has([data-conversation-scaffold] button[aria-expanded='true'])")
+      return '#' + i + ' n=' + c.children.length + ' gateOpen=' + gate + ' [' + kids.join(' | ') + ']'
+    })
+    console.log('[ui-studio chain-diag] root=' + (document.documentElement.dataset.uiChainFold || 'none') + ' ' + (shape.join('  ||  ') || 'no assistant content'))
+  } catch (error) {
+    console.log('[ui-studio chain-diag] failed: ' + (error && error.message))
+  }
+}
+
 function paint() {
   const root = document.documentElement
   if (!state.enabled) {
@@ -2556,6 +2584,14 @@ function paint() {
   // 优化宠物层级：宠物降到普通板块层，浮层抬到它之上
   if (state.petLayer !== false) root.dataset.uiPetLayer = '1'
   else delete root.dataset.uiPetLayer
+  // 思维链整块折叠：关掉就整段退回“逐块折叠”
+  if (state.chainFold !== false) root.dataset.uiChainFold = '1'
+  else delete root.dataset.uiChainFold
+  // 临时诊断：连打 5 次，覆盖重载后再打开会话的时机
+  if (chainDiagTicks < 5) {
+    chainDiagTicks += 1
+    setTimeout(chainDiag, 2000 * chainDiagTicks)
+  }
 
   // 头像：只有跟头像有关的项变了才去翻整页消息（以前每动一个开关都扫一遍）
   const avatarKey = [state.showAvatar !== false, state.avatar, state.avatarName, state.avatarSize].join('|')
@@ -2999,6 +3035,18 @@ function Panel({ variant } = {}) {
             note: '宠物降到和普通会话同一层，设置、弹窗、菜单都能盖住它',
             checked: live.petLayer !== false,
             onChange: value => commit({ petLayer: value }),
+          }),
+        ],
+      }),
+
+      // 5.6 思维链：整块折叠
+      jsxs(Section, {
+        title: '思维链',
+        children: [          jsx(SwitchRow, {
+            label: '整块折叠',
+            note: '一条回复里的思维链、工具行合成一块：全收起时只留第一行，点它展开整串',
+            checked: live.chainFold !== false,
+            onChange: value => commit({ chainFold: value }),
           }),
         ],
       }),
