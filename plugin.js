@@ -2400,6 +2400,21 @@ const ALWAYS_CSS = `
   stroke-width: 0 !important;
 }
 
+/* —— 思维链整块折叠 ——
+   一条回复里的「已思考 / 工具行 / 工具运行汇总」都是对话脚手架
+   （data-conversation-scaffold），逐个开合时能占掉半屏。这里把它们当成一块：
+   只要这一串里没有任何一块处于展开态，就只留第一行；点这一行展开它 → 整串
+   重新出现，各块仍按核心原来的方式单独开合；把它收起 → 又收回一行。
+   纯样式实现（:has 看展开态 + 相邻兄弟），不接管 DOM、不挂观察器，也不改核心
+   自己的折叠状态 —— 「外观 › 折叠推理（默认折叠）」开关照常生效。
+   只认直系子节点：中间夹着正文段落的思维块不算同一串，不会被收走；
+   审批卡片（tool-approval-*）与连接器卡片不在这两个 slot 里，永远可见。 */
+[data-slot='aui_assistant-message-content']:not(:has([aria-expanded='true']))
+  > :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block'])
+  + :is([data-slot='aui_thinking-disclosure'], [data-slot='tool-block']) {
+  display: none !important;
+}
+
 
 
 
